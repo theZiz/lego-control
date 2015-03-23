@@ -94,13 +94,6 @@ int main()
 	show_ip();
 	if((motor_file = open(PWM_DEVICE_NAME, O_WRONLY)) == -1)
 		fprintf(stderr,"Err: No motor!\n");
-	motor_set_speed(MOTOR_A,MOTOR_SPEED);
-	motor_start(MOTOR_A);
-	sleep(2);
-	motor_stop(MOTOR_A);
-
-	motor_stop(MOTOR_B);
-	motor_stop(MOTOR_C);
 
 	int create_socket, new_socket;
 	socklen_t addrlen;
@@ -118,7 +111,8 @@ int main()
 	address.sin_port = htons (15000);
 	if (bind ( create_socket,
 						 (struct sockaddr *) &address,
-						 sizeof (address)) != 0) {
+						 sizeof (address)) != 0)
+	{
 		fprintf(stderr,"FATAL: Port blocked!\n");
 		return -1;
 	}
@@ -128,17 +122,17 @@ int main()
 		(struct sockaddr *) &address,
 		&addrlen );
 	if (new_socket > 0)
-		printf ("Ein Client (%s) ist verbunden ...\n",
+		printf ("Client (%s) is connected ...\n",
 	inet_ntoa (address.sin_addr));
 	int message;
-	do {
+	do
+	{
 		size = recv (new_socket, &message, sizeof(int), 0);
-		//send(new_socket, buffer, strlen (buffer), 0);
 		if( size > 0)
 		{
 			int op = message & 65535;
 			int status = message >> 16;
-			printf ("Nachricht empfangen: %i %i\n", op, status);
+			printf ("Got message: %i %i\n", op, status);
 			switch (op)
 			{
 				case 0:
@@ -241,7 +235,8 @@ int main()
 		}
 		else
 			break;
-	} while (message != -1);
+	}
+	while (message != -1);
 	close (new_socket);
 	close (create_socket);
  
