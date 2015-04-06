@@ -1,79 +1,48 @@
 void* sensor_loop(void * ptr)
-{	/*
+{	
 	int socket = *((int*)ptr);
-
-	//Sensor 1, Ev3 touch sensor
-	//Sensor 2, NXT touch sensor
-	int analog_file;
-	ANALOG *pAnalog;
-	if((analog_file = open(ANALOG_DEVICE_NAME, O_RDWR | O_SYNC)) != -1)
+	
+	ev3_sensor_ptr sensors = ev3_load_sensors();
+	ev3_driver_sensor(
+		ev3_search_sensor_by_identifier( sensors, NXT_ANALOG, 0 ),
+		"lego-nxt-sound"
+	);
+	ev3_sensor_ptr sensor = sensors;
+	while (sensor)
 	{
-		pAnalog = (ANALOG*)mmap(0, sizeof(ANALOG), PROT_READ | PROT_WRITE, MAP_FILE | MAP_SHARED, analog_file, 0);
-		if (pAnalog == MAP_FAILED)
-		{
-			printf("Mapping analog device failed\n");
-			close(analog_file);
-			analog_file = -1;
-		}
-		else
-			printf("Analog device ready\n");
+		ev3_mode_sensor( sensor, 0 );
+		ev3_open_sensor( sensor );
+		sensor = sensor->next;
+	}
+	//Sending the names of the four sensors
+	int i;
+	sensor = sensors;
+	char name[128];
+	for (i = 0; i < 4 && sensor; i++)
+	{
+		sprintf(name,"%s",sensor->driver_name);
+		send(socket, name, sizeof(char)*128, 0);
+		sensor = sensor->next;
+	}
+	for (; i < 4; i++)
+	{
+		sprintf(name,"not connected");
+		send(socket, name, sizeof(char)*128, 0);
 	}
 
-	//Sensor 3, NXT sound sensor
-	int iic_file;
-	IIC *pIic;
-	if ((iic_file = open(IIC_DEVICE_NAME, O_RDWR | O_SYNC)) != -1)
-	{
-		pIic = (IIC*)mmap(0, sizeof(UART), PROT_READ | PROT_WRITE, MAP_FILE | MAP_SHARED, iic_file, 0);
-		if (pAnalog == MAP_FAILED)
-		{
-			printf("Mapping iic device failed\n");
-			close(iic_file);
-			iic_file = -1;
-		}
-		else
-			printf("Iic device ready\n");
-	}
-	//Sensor 4, Ev3 color sensor
-	int iic_file;
-	IIC *pIic;
-	if ((iic_file = open(IIC_DEVICE_NAME, O_RDWR | O_SYNC)) != -1)
-	{
-		pIic = (IIC*)mmap(0, sizeof(UART), PROT_READ | PROT_WRITE, MAP_FILE | MAP_SHARED, iic_file, 0);
-		if (pAnalog == MAP_FAILED)
-		{
-			printf("Mapping iic device failed\n");
-			close(iic_file);
-			iic_file = -1;
-		}
-		else
-			printf("Iic device ready\n");
-	}*/
-
+	int c = 0;
 	while (finish == 0)
-	{/*
-		//Reading sensor values:
-		int send_data[4];
-		if (analog_file != -1)
+	{
+		int32_t send_data[4];
+		sensor = sensors;
+		for (i = 0; i < 4 && sensor; i++)
 		{
-			send_data[0] = (unsigned char)pAnalog->Pin6[0][pAnalog->Actual[0]];
-			send_data[1] = (unsigned char)pAnalog->Pin6[1][pAnalog->Actual[1]]; //If in doubt, try Pin1
+			ev3_update_sensor_val( sensor );
+			send_data[i] = sensor->val_data[0].s32;
+			sensor = sensor->next;
 		}
-		else
-		{
-			send_data[0] = 0;
-			send_data[1] = 0;
-		}
-		if (iic_file != -1)
-			send_data[2] = (unsigned char)pIic->Raw[2][pIic->Actual[2]][0];
-		else
-			send_data[2] = 0;
-
-		send(socket, send_data, sizeof(int)*4, 0);*/
+		send(socket, send_data, sizeof(int32_t)*4, 0);
 		usleep(20000);
 	}
-	/*if (analog_file != -1)
-		close(analog_file);
-	if (iic_file != -1)
-		close(iic_file);*/
+	ev3_delete_sensors(sensors);
 }

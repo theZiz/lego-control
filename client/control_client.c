@@ -14,6 +14,7 @@ int create_socket;
 
 #define BUFFER_SIZE 1024
 int sensor_data[BUFFER_SIZE][4];
+char sensor_name[4][128];
 int sensor_ptr = 0;
 
 void draw(void)
@@ -35,17 +36,8 @@ void draw(void)
 	int i;
 	for (i = 0; i < 4; i++)
 	{
-		char buffer[32];
-		switch (i)
-		{
-			case 0: sprintf(buffer,"1 (Ev3 touchsensor):"); break;
-			case 1: sprintf(buffer,"2 (NXT touchsensor):"); break;
-			case 2: sprintf(buffer,"3 (Soundsensor):"); break;
-			case 3: sprintf(buffer,"4 (Colorsensor):"); break;
-		}
 		int y = (i+1)*screen->h >> 2;
 		int height = screen->h >> 2;
-		spFontDraw( screen->w + 8 >> 1, i*screen->h + 8 >> 2, 0, buffer, font );
 		spLine( screen->w >> 1,y,0, screen->w,y,0,65535);
 		int x;
 		y--;
@@ -63,11 +55,14 @@ void draw(void)
 		ptr = sensor_ptr;
 		for (x = screen->w-1; x > (screen->w >> 1); x--)
 		{
-			spLine( x,y,0, x,y-sensor_data[ptr][i]*height/max,0,spGetFastRGB(255,255,0));
+			spLine( x,y,0, x,y-sensor_data[ptr][i]*height/max,0,spGetFastRGB(255*(i & 1),255*((i & 2) >> 1),255*(i==0)));
 			ptr--;
 			if (ptr < 0)
 				ptr = BUFFER_SIZE-1;
 		}
+		spFontDraw( screen->w + 8 >> 1, i*screen->h + 8 >> 2, 0, sensor_name[i], font );
+		sprintf(buffer,"max: %i\n",max);
+		spFontDrawMiddle( screen->w*3 >> 2, (i+1)*screen->h + 8 - font->maxheight*4 >> 2, 0, buffer, font );
 	}
 	spFlip();
 }
@@ -148,6 +143,7 @@ int calc(Uint32 steps)
 	{
 		spGetInput()->button[SP_BUTTON_X] = 0;
 		send_message(-1,0);
+		return 1;
 	}
 	if (spGetInput()->button[SP_BUTTON_START])
 		return 1;
@@ -181,13 +177,16 @@ void resize( Uint16 w, Uint16 h )
 }
 
 void* sensor_loop(void * ptr)
-{	
+{
+	//Getting the names
 	int socket = *((int*)ptr);
-	int sensor_1;
+	ssize_t size;
+	int i;
+	for (i = 0; i < 4; i++)
+		size = recv (socket, &(sensor_name[i]), sizeof(char)*128, 0);
 	while (finish == 0)
 	{
 		//Reading sensor values:
-		ssize_t size;
 		int n_ptr = sensor_ptr+1;
 		if (n_ptr >= BUFFER_SIZE)
 			n_ptr = 0;

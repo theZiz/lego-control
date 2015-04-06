@@ -11,8 +11,7 @@
 #include <arpa/inet.h>
 
 #include <pthread.h>
-
-#include "graphics.c"
+#include <ev3c.h>
 
 char* get_ip()
 {
@@ -28,14 +27,12 @@ char* get_ip()
 
 void show_ip()
 {
-	if (__fbp == NULL)
-		return;
-	graphics_clear();
+	ev3_clear_lcd();
 	int i;
 	for (i = 0; i < 4;i++)
-		graphics_circle(rand()%(int)__vinfo.xres,rand()%(int)__vinfo.yres,rand()%((int)__vinfo.yres/2));
+		ev3_circle_lcd(rand()%(int)EV3_X_LCD,rand()%(int)EV3_Y_LCD,rand()%((int)EV3_Y_LCD/2),rand()%2);
 	for (i = 0; i < 100;i++)
-		graphics_line(rand()%(int)__vinfo.xres,rand()%(int)__vinfo.yres,rand()%(int)__vinfo.xres,rand()%(int)__vinfo.yres);
+		ev3_line_lcd(rand()%(int)EV3_X_LCD,rand()%(int)EV3_Y_LCD,rand()%(int)EV3_X_LCD,rand()%(int)EV3_Y_LCD,rand()%2);
 	/*
 	//Create a structure that will store the LCD information	
 	LCD my_lcd;
@@ -59,7 +56,7 @@ int finish = 0;
 
 int main()
 {
-	graphics_init();
+	ev3_init_lcd();
 	show_ip();
 	srand(time(NULL));
 	int create_socket, new_socket;
@@ -90,7 +87,6 @@ int main()
 	if (new_socket > 0)
 		printf ("Client (%s) is connected ...\n",
 	inet_ntoa (address.sin_addr));
-		
 	pthread_t motor_thread;
 	pthread_t sensor_thread;
 	pthread_create( &motor_thread, NULL, motor_loop, &new_socket);
@@ -101,6 +97,7 @@ int main()
 	
 	close (new_socket);
 	close (create_socket);
-	graphics_quit();
+    	
+	ev3_quit_lcd();
  	return 0;
 }
